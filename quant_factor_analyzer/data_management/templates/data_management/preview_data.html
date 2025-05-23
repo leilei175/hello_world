@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Preview: {{ filename }}{% endblock %}
+{% block content %}
+  <h2>Preview for Factor File: {{ filename }}</h2>
+  
+  <h3>DataFrame Head:</h3>
+  <div>
+    {{ head_html | safe }}
+  </div>
+  
+  <h3>DataFrame Describe:</h3>
+  <div>
+    {{ describe_html | safe }}
+  </div>
+  
+  <h3>DataFrame Info:</h3>
+  <pre>{{ info_str }}</pre>
+
+  <h3>Missing Value Analysis:</h3>
+  <div>
+    {{ missing_values_html | safe }}
+  </div>
+
+  <h4>Preprocessing Options:</h4>
+  <form action="{{ url_for('data_management.handle_missing_values_route', filename=filename) }}" method="post">
+      <label for="global_mv_strategy">Choose a global strategy for missing values:</label>
+      <select name="global_mv_strategy" id="global_mv_strategy">
+          <option value="">-- Select Strategy --</option>
+          <option value="ffill">Forward Fill (All Columns)</option>
+          <option value="bfill">Backward Fill (All Columns)</option>
+          <option value="interpolate_linear">Interpolate (Linear, All Columns)</option>
+          <option value="delete_rows">Delete Rows with any Missing Values</option>
+          <option value="fill_mean">Fill with Mean (Numeric Columns Only)</option>
+          <option value="fill_median">Fill with Median (Numeric Columns Only)</option>
+      </select>
+      <br><br>
+      <input type="submit" value="Apply Missing Value Strategy">
+  </form>
+  
+  <h3>Outlier Analysis:</h3>
+  {% if outlier_stats %}
+    <table class="table table-striped" border="1">
+      <thead>
+        <tr>
+          <th>Column Name</th>
+          <th>Outliers (3-Sigma Rule)</th>
+          <th>Outliers (IQR Rule)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for stat in outlier_stats %}
+        <tr>
+          <td>{{ stat.column }}</td>
+          <td>{{ stat.sigma_count }}</td>
+          <td>{{ stat.iqr_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No numeric columns found for outlier analysis, or data is not yet loaded/processed.</p>
+  {% endif %}
+  
+  <h4>Outlier Handling Options:</h4>
+  <form action="{{ url_for('data_management.handle_outliers_route', filename=filename) }}" method="post">
+      <label for="global_outlier_strategy">Choose a global strategy for outlier handling (applies to all numeric columns):</label>
+      <select name="global_outlier_strategy" id="global_outlier_strategy">
+          <option value="">-- Select Strategy --</option>
+          <option value="cap_1_99">Cap at 1st/99th Percentiles</option>
+          <option value="clamp_3sigma">Clamp using 3-Sigma Rule</option>
+          <option value="set_null_3sigma">Set to Null (3-Sigma Rule)</option>
+      </select>
+      <br><br>
+      <input type="submit" value="Apply Outlier Strategy">
+  </form>
+
+  <h3>Data Standardization:</h3>
+  <form action="{{ url_for('data_management.handle_standardization_route', filename=filename) }}" method="post">
+      <label for="standardization_strategy">Choose a standardization strategy (applies to all numeric columns):</label>
+      <select name="standardization_strategy" id="standardization_strategy">
+          <option value="">-- Select Strategy --</option>
+          <option value="zscore">Z-score Standardization</option>
+          <option value="minmax">Min-Max Scaling (to 0-1 range)</option>
+          <option value="rankic">Rank IC Transformation (Placeholder - More Complex)</option> 
+      </select>
+      <br><br>
+      <p>Note: Applying standardization will modify the data. Current statistics (mean, std, min, max) will change.</p>
+      <input type="submit" value="Apply Standardization Strategy">
+  </form>
+
+  <h3>Time Series Alignment:</h3>
+  {% if available_price_files %}
+    <form action="{{ url_for('data_management.preview_factor_data_route', filename=filename) }}" method="get">
+      <label for="price_file_to_align">Align with Price File:</label>
+      <select name="aligned_with_price_file" id="price_file_to_align">
+        <option value="">-- Select Price File --</option>
+        {% for price_file in available_price_files %}
+          <option value="{{ price_file }}" {% if request.args.get('aligned_with_price_file') == price_file %}selected{% endif %}>
+            {{ price_file }}
+          </option>
+        {% endfor %}
+      </select>
+      <input type="submit" value="Preview Aligned Factor Data">
+    </form>
+  {% else %}
+    <p>No validated price files available for alignment. Please upload and validate price data first.</p>
+  {% endif %}
+  
+  {% if request.args.get('aligned_with_price_file') %}
+    <p><strong>Currently displaying factor data aligned with: {{ request.args.get('aligned_with_price_file') }}. The original factor file has not been modified.</strong></p>
+  {% endif %}
+
+  <p><a href="{{ url_for('data_management.upload_data_route') }}">Upload another file</a></p>
+{% endblock %}

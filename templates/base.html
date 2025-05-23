@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{% block title %}Quant Factor Analyzer{% endblock %}</title>
+    <!-- Add any CSS links here -->
+  </head>
+  <body>
+    <nav>
+      <ul>
+        <li><a href="{{ url_for('data_management.upload_data_route') }}">Upload Data</a></li>
+        <li><a href="{{ url_for('visualization.ic_timeseries_chart_route', factor_filename='dummy_factor') }}">Placeholder IC Chart</a></li>
+        <li><a href="{{ url_for('visualization.cumulative_return_chart_route', factor_filename='dummy_factor') }}">Placeholder Cumulative Return Chart</a></li>
+      </ul>
+    </nav>
+    <hr>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul>
+        {% for category, message in messages %}
+          <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+    <!-- Add any JS script links here -->
+  </body>
+</html>

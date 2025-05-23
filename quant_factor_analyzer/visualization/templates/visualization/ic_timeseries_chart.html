@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}IC Time Series Chart - {{ factor_filename }}{% endblock %}
+{% block content %}
+  <h2>IC Time Series Chart for: {{ factor_filename }}</h2>
+  {% if chart_url %}
+    <img src="{{ chart_url }}" alt="IC Time Series Chart for {{ factor_filename }}">
+  {% else %}
+    <p>Chart could not be generated.</p>
+  {% endif %}
+  <p><a href="{{ url_for('data_management.upload_data_route') }}">Back to Upload</a></p>
+  <p><a href="{{ url_for('data_management.preview_factor_data_route', filename=factor_filename) }}">Back to {{ factor_filename }} Preview</a></p>
+{% endblock %}

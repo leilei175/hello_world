@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Data - Data Management Tool{% endblock %}
+
+{% block content %}
+  <h1>Upload New Data File</h1>
+  <form method="POST" action="{{ url_for('main.upload_file') }}" enctype="multipart/form-data">
+    {# Not using Flask-WTF for this basic example, so no csrf_token needed here unless added separately #}
+    <p>
+      <label for="file">Select file (CSV, XLS, XLSX):</label><br>
+      <input type="file" id="file" name="file" accept=".csv, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+    </p>
+    <p><input type="submit" value="Upload"></p>
+  </form>
+{% endblock %}

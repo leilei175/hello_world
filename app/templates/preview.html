@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Preview {{ filename }} - Data Management Tool{% endblock %}
+
+{% block content %}
+  <h1>Preview for {{ filename }}</h1>
+  {% if file_location %}
+  <p><small><em>File loaded from: {{ file_location }} directory.</em></small></p>
+  {% endif %}
+
+  <h2>Data Preview (First 20 rows):</h2>
+  {% if data_head is not none and not data_head.empty %}
+    {{ data_head.to_html(classes='table table-striped table-hover table-sm dataframe', border=0) | safe }}
+  {% else %}
+    <p>No data to display or data is empty.</p>
+  {% endif %}
+  
+  <h2>Basic Statistics:</h2>
+  {% if statistics is not none and not statistics.empty %}
+    {{ statistics.to_html(classes='table table-striped table-hover table-sm dataframe', border=0) | safe }}
+  {% else %}
+    <p>No statistics to display.</p>
+  {% endif %}
+
+  <h2>Handle Missing Values:</h2>
+  {% if missing_counts is not none and missing_counts.sum() > 0 %}
+    <h3>Missing Value Counts:</h3>
+    <table class="table table-sm dataframe">
+      <thead>
+        <tr>
+          <th>Column</th>
+          <th>Missing Count</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for col, count in missing_counts.items() %}
+          {% if count > 0 %}
+            <tr>
+              <td>{{ col }}</td>
+              <td>{{ count }}</td>
+            </tr>
+          {% endif %}
+        {% endfor %}
+        <tr>
+          <td><strong>Total Missing</strong></td>
+          <td><strong>{{ missing_counts.sum() }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <form method="POST" action="{{ url_for('main.handle_missing_values', filename=filename) }}">
+      <p>
+        <label for="mv_strategy">Select Missing Value Handling Strategy:</label><br>
+        <select id="mv_strategy" name="mv_strategy" required>
+          <option value="">--Select Strategy--</option>
+          <option value="ffill">Forward Fill (ffill)</option>
+          <option value="bfill">Backward Fill (bfill)</option>
+          <option value="dropna_rows">Delete Rows with Missing Values</option>
+          <option value="dropna_cols">Delete Columns with Missing Values</option>
+          <option value="interpolate_linear">Interpolate (Linear, row-wise)</option>
+        </select>
+      </p>
+      <p><input type="submit" value="Apply Missing Value Strategy"></p>
+    </form>
+  {% elif missing_counts is not none %}
+    <p>No missing values found in the dataset.</p>
+  {% else %}
+    <p>Missing value information not available.</p>
+  {% endif %}
+
+  <hr>
+  <h2>Handle Outliers:</h2>
+  {% if numeric_cols is not none and numeric_cols %}
+    <form method="POST" action="{{ url_for('main.handle_outliers', filename=filename) }}">
+      <p>
+        <label for="outlier_columns">Select Columns for Outlier Handling (numeric only):</label><br>
+        <select id="outlier_columns" name="outlier_columns" multiple required size="5">
+          <option value="_all_numeric_">All Numeric Columns</option>
+          {% for col in numeric_cols %}
+            <option value="{{ col }}">{{ col }}</option>
+          {% endfor %}
+        </select>
+      </p>
+      
+      <p><strong>Detection Method:</strong><br>
+        <input type="radio" id="3sigma" name="detection_method" value="3sigma" checked>
+        <label for="3sigma">3-Sigma Rule</label><br>
+        <input type="radio" id="quantile" name="detection_method" value="quantile">
+        <label for="quantile">Quantile Filtering</label>
+      </p>
+      
+      <div id="quantile_params" style="display:none; margin-left: 20px;">
+        <label for="lower_quantile">Lower Quantile (e.g., 0.01):</label>
+        <input type="number" id="lower_quantile" name="lower_quantile" step="0.001" min="0" max="1" value="0.01"><br>
+        <label for="upper_quantile">Upper Quantile (e.g., 0.99):</label>
+        <input type="number" id="upper_quantile" name="upper_quantile" step="0.001" min="0" max="1" value="0.99">
+      </div>
+
+      <p><strong>Handling Method:</strong><br>
+        <input type="radio" id="cap" name="handling_method" value="cap" checked>
+        <label for="cap">Cap/Winsorize</label><br>
+        <input type="radio" id="remove" name="handling_method" value="remove">
+        <label for="remove">Remove Rows with Outliers</label>
+      </p>
+      
+      <p><input type="submit" value="Apply Outlier Strategy"></p>
+    </form>
+
+    <script>
+      document.querySelectorAll('input[name="detection_method"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+          document.getElementById('quantile_params').style.display = this.value === 'quantile' ? 'block' : 'none';
+        });
+      });
+    </script>
+  {% else %}
+    <p>No numeric columns available for outlier detection, or data not loaded.</p>
+  {% endif %}
+  
+  <hr>
+  <h2>Standardize Data:</h2>
+  {% if numeric_cols is not none and numeric_cols %}
+    <form method="POST" action="{{ url_for('main.handle_standardization', filename=filename) }}">
+      <p>
+        <label for="std_columns">Select Columns for Standardization (numeric only):</label><br>
+        <select id="std_columns" name="std_columns" multiple required size="5">
+          <option value="_all_numeric_">All Numeric Columns</option>
+          {% for col in numeric_cols %}
+            <option value="{{ col }}">{{ col }}</option>
+          {% endfor %}
+        </select>
+      </p>
+      
+      <p><strong>Standardization Method:</strong><br>
+        <input type="radio" id="zscore" name="std_method" value="zscore" checked>
+        <label for="zscore">Z-score Standardization</label><br>
+        <input type="radio" id="minmax" name="std_method" value="minmax">
+        <label for="minmax">Min-Max Scaling</label><br>
+        <input type="radio" id="rank_pct" name="std_method" value="rank_pct">
+        <label for="rank_pct">Rank Transformation (Percentage)</label>
+      </p>
+      
+      <p><input type="submit" value="Apply Standardization"></p>
+    </form>
+  {% else %}
+    <p>No numeric columns available for standardization, or data not loaded.</p>
+  {% endif %}
+
+  <hr>
+  <h2>Align Time Series (Resample Day Level):</h2>
+  {% if data_head is not none %} {# Check if data is loaded by checking data_head or filename #}
+    <form method="POST" action="{{ url_for('main.handle_align_timeseries', filename=filename) }}">
+      <p>
+        <label for="target_frequency">Target Frequency:</label><br>
+        <select id="target_frequency" name="target_frequency" required>
+          <option value="D">Daily</option>
+          <option value="B">Business Daily</option>
+          <option value="W-FRI">Weekly (Friday)</option>
+          <option value="M">Monthly End</option>
+          {# Removed MS as it's not explicitly requested in this final step #}
+        </select>
+      </p>
+      <p>
+        <label for="agg_method">Aggregation Method:</label><br>
+        <select id="agg_method" name="agg_method" required>
+          <option value="last">Last</option>
+          <option value="first">First</option>
+          <option value="mean">Mean</option>
+          <option value="sum">Sum</option>
+          {# Removed OHLC as it's not explicitly requested in this final step #}
+        </select>
+      </p>
+      <p><small><em>Note: This process makes the 'day' level of the index regular. Securities data will be aggregated or forward-filled as per selection. Ensure your data's date level is parseable as datetime (already checked on upload). 'Mean'/'Sum' may fail or produce unexpected results for non-numeric columns.</em></small></p>
+      <p><input type="submit" value="Align Time Series"></p>
+    </form>
+  {% else %}
+    <p>Data not loaded. Upload a file first.</p>
+  {% endif %}
+
+  <hr>
+  <p><a href="{{ url_for('main.upload_page') }}">Upload another file</a></p>
+{% endblock %}

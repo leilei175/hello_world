@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+instance/
+.env
+venv/
+*.sqlite3
+data/uploads/*
+data/processed/*
+instance/
+static/charts_generated/*.png

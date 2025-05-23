@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Data{% endblock %}
+
+{% block content %}
+  <h2>Upload Factor and Price Data</h2>
+  <form method="POST" enctype="multipart/form-data">
+    <div>
+      <label for="factor_file">Factor Data (CSV, XLS, XLSX):</label>
+      <input type="file" id="factor_file" name="factor_file" accept=".csv,.xls,.xlsx">
+    </div>
+    <br>
+    <div>
+      <label for="price_file">Price Data (CSV, XLS, XLSX):</label>
+      <input type="file" id="price_file" name="price_file" accept=".csv,.xls,.xlsx">
+    </div>
+    <br>
+    <div>
+      <button type="submit">Upload Files</button>
+    </div>
+  </form>
+{% endblock %}
