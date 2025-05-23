@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel to HTML Viewer</title>
+    <script>
+        /* Full SheetJS code here */
+    </script>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            color: #444;
+        }
+
+        input[type="file"],
+        input[type="text"] {
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; /* Ensures padding doesn't add to width */
+        }
+
+        input[type="file"] {
+            cursor: pointer;
+        }
+        
+        input#searchInput {
+            width: 300px;
+        }
+
+        #dataTableContainer {
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px; /* Redundant if #dataTableContainer has margin-top */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #e9ecef;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #e2e6ea;
+        }
+    </style>
+</head>
+<body>
+    <h1>Excel 内容查看与搜索 (离线版)</h1>
+
+    <input type="file" id="excelFileInput" accept=".xls, .xlsx">
+    <input type="text" id="searchInput" placeholder="搜索表格内容...">
+
+    <div id="dataTableContainer"></div>
+
+    <script>
+        const excelFileInput = document.getElementById('excelFileInput');
+
+        excelFileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    const arrayBuffer = e.target.result;
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+                    // Assuming the first sheet is the one to be processed
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    const dataTableContainer = document.getElementById('dataTableContainer');
+                    dataTableContainer.innerHTML = ''; // Clear previous table
+
+                    if (!jsonData || jsonData.length === 0) {
+                        dataTableContainer.textContent = '未在Excel工作表中找到数据。';
+                        return;
+                    }
+
+                    const table = document.createElement('table');
+                    table.style.borderCollapse = 'collapse';
+                    table.style.width = '100%'; // Optional: makes table take full width
+
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+                    
+                    const headers = Object.keys(jsonData[0]);
+                    headers.forEach(headerText => {
+                        const th = document.createElement('th');
+                        th.textContent = headerText;
+                        th.style.border = '1px solid black';
+                        th.style.padding = '8px';
+                        th.style.backgroundColor = '#f2f2f2'; // Light grey background for headers
+                        headerRow.appendChild(th);
+                    });
+
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+
+                    const tbody = document.createElement('tbody');
+                    jsonData.forEach(rowObject => {
+                        const dataRow = document.createElement('tr');
+                        headers.forEach(headerKey => {
+                            const td = document.createElement('td');
+                            td.textContent = rowObject[headerKey] !== undefined ? rowObject[headerKey] : ''; // Handle undefined values
+                            td.style.border = '1px solid black';
+                            td.style.padding = '8px';
+                            dataRow.appendChild(td);
+                        });
+                        tbody.appendChild(dataRow);
+                    });
+
+                    table.appendChild(tbody);
+                    dataTableContainer.appendChild(table);
+                };
+
+                reader.readAsArrayBuffer(file);
+            }
+        });
+
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', function(event) {
+            let searchTerm = searchInput.value.toLowerCase();
+            const tableBody = document.querySelector('#dataTableContainer table tbody');
+
+            if (!tableBody) {
+                return; // No table to search
+            }
+
+            const tableRows = tableBody.getElementsByTagName('tr');
+
+            for (let row of tableRows) {
+                let rowVisible = false;
+                const cells = row.getElementsByTagName('td');
+                for (let cell of cells) {
+                    if (cell.textContent.toLowerCase().includes(searchTerm)) {
+                        rowVisible = true;
+                        break; 
+                    }
+                }
+                row.style.display = rowVisible ? "" : "none";
+            }
+        });
+    </script>
+</body>
+</html>
